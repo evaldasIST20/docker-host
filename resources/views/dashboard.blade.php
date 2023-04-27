@@ -20,7 +20,7 @@
                         @endphp
                         <div>Port: {{$port}}</div>
 
-                        <form method="POST" action="/Laravel/docker-host/public/project/{{$project->id}}">
+                        <form method="POST" action="/project/{{$project->id}}">
                             @csrf
                             @method('DELETE')
                             <x-danger-button>
