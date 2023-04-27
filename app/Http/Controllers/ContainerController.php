@@ -14,21 +14,21 @@ class ContainerController extends Controller
             'name' => $name
         ];
 
-        Http::post('http://192.168.0.192:2375/v1.42/containers/create?name='.$name, $body);
+        Http::post('http://10.175.25.30:2375/v1.42/containers/create?name='.$name, $body);
 
         Container::create($formFields);
     }
 
     public static function start($name) {
-        Http::post('http://192.168.0.192:2375/v1.42/containers/'.$name.'/start');
+        Http::post('http://10.175.25.30:2375/v1.42/containers/'.$name.'/start');
     }
 
     public static function inspect($name) {
-        return Http::get('http://192.168.0.192:2375/v1.42/containers/'.$name.'/json');
+        return Http::get('http://10.175.25.30:2375/v1.42/containers/'.$name.'/json');
     }
 
     public static function delete(Container $container) {
-        Http::delete('http://192.168.0.192:2375/v1.42/containers/'.$container->name.'?force=true');
+        Http::delete('http://10.175.25.30:2375/v1.42/containers/'.$container->name.'?force=true');
 
         $container->delete();
     }

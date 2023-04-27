@@ -19,13 +19,13 @@ class VolumeController extends Controller
             'Driver' => 'local'
         ];
 
-        Http::post('http://192.168.0.192:2375/v1.42/volumes/create', $body);
+        Http::post('http://10.175.25.30:2375/v1.42/volumes/create', $body);
 
         Volume::create($formFields);
     }
 
     public static function delete(Volume $volume) {
-        Http::delete('http://192.168.0.192:2375/v1.42/volumes/'.$volume->name);
+        Http::delete('http://10.175.25.30:2375/v1.42/volumes/'.$volume->name);
 
         $volume->delete();
     }
