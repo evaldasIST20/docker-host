@@ -11,6 +11,10 @@ class project extends Model
 
     protected $fillable = ['title', 'user_id', 'app_id'];
 
+    public function services() {
+        return $this->hasMany(Service::class, 'project_id');
+    }
+
     public function containers() {
         return $this->hasMany(Container::class, 'project_id');
     }

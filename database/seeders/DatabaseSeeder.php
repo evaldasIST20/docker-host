@@ -25,10 +25,7 @@ class DatabaseSeeder extends Seeder
             'title' => 'WordPress'
         ]);
         app::factory()->create([
-            'title' => 'LAMP'
-        ]);
-        app::factory()->create([
-            'title' => 'Laravel'
+            'title' => 'Odoo'
         ]);
     }
 }
