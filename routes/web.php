@@ -28,6 +28,11 @@ Route::post('/project', [ProjectController::class, 'store'])
 Route::delete('/project/{project}', [ProjectController::class, 'delete'])
     ->middleware('auth')->name('project-delete');
 
+Route::put('/project/{project}', [ProjectController::class, 'update'])
+    ->middleware('auth')->name('project-update');
+
+Route::get('/project/{project}', [ProjectController::class, 'show'])
+    ->middleware('auth')->name('project-show');
 
     
 // ### Authorization routes ###

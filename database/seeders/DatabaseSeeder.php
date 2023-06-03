@@ -27,5 +27,8 @@ class DatabaseSeeder extends Seeder
         app::factory()->create([
             'title' => 'Odoo'
         ]);
+        app::factory()->create([
+            'title' => 'Laravel'
+        ]);
     }
 }

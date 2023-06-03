@@ -9,7 +9,11 @@ class project extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'user_id', 'app_id'];
+    protected $fillable = ['title', 'user_id', 'app_id', 'url', 'image_version'];
+
+    public function images() {
+        return $this->hasMany(Image::class, 'project_id');
+    }
 
     public function services() {
         return $this->hasMany(Service::class, 'project_id');

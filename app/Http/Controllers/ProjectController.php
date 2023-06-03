@@ -6,8 +6,12 @@ use App\Models\app;
 use App\Models\project;
 use Illuminate\Http\Request;
 use App\Http\Controllers\NetworkController;
+use App\Jobs\CreateContainers;
+use App\Jobs\CreateImages;
+use App\Jobs\DeleteImages;
 use App\Jobs\DeleteProject;
 use App\Jobs\DeleteVolumes;
+use App\Jobs\UpdateContainer;
 use App\Models\Container;
 use App\Models\Service;
 
@@ -19,17 +23,99 @@ class ProjectController extends Controller
         ]);
     }
 
+    public function show(project $project) {
+        return view('project.show', [
+            'project' => $project
+        ]);
+    }
+
     public function create() {
         $apps = app::pluck('title', 'id');
 
         return view('project.create', compact('apps'));
     }
 
-    public function store(Request $request) {
+    public function update(Request $request, project $project) {
         $formFields = $request->validate([
-            'title' => 'required',
-            'app_id' => 'required'
+            'url' => ['required', 'url'],
+        ],[
+            'url.required' => 'Prašome įvesti nuorodą',
+            'url.url' => 'Prašome įvesti tinkamą nuorodą'
         ]);
+        $formFields['image_version'] = $project->image_version+1;
+
+        $project->update($formFields);
+        $projectNaming = str_replace(' ', '', $project->title).'_id-'.$project->id;
+        $networkName = $projectNaming.'_network';
+
+        if($project->app_id == 3){ //Laravel
+            $laravelVolName = $projectNaming.'_laravel_vol';
+            $imageName = strtolower($projectNaming.'_laravel_image');
+
+            $createImage = new CreateImages($project->id, $imageName, $project->image_version.'.0', 'Laravel', $project->url);
+            dispatch($createImage)->delay(now()->addSeconds(1));
+
+            $laravelContName = $projectNaming.'_laravel_cont';
+
+            $laravelBody = [
+                'Name' => $laravelContName,
+                'TaskTemplate' => [
+                    'ContainerSpec' => [
+                        'Image' => $imageName.':'.$project->image_version.'.0',
+                        'Mounts' => [
+                            [
+                                'Target' => '/app',
+                                'Source' => $laravelVolName,
+                                'Type' => 'volume',
+                                'ReadOnly' => false
+                            ]
+                        ]
+                    ]
+                ],
+                'Networks' => [
+                    ['Target' => $networkName]
+                ],
+                "EndpointSpec" => [
+                    'Ports' => [
+                        ['TargetPort' => 8000]
+                    ]
+                ]
+            ];
+
+            $serviceVersion = ServiceController::inspect($laravelContName)->json()['Version']['Index'];
+            
+            $updateLaravelCont = new UpdateContainer($laravelContName, $serviceVersion, $laravelBody);
+            dispatch($updateLaravelCont)->delay(now()->addSeconds(80));
+        }
+
+        return redirect('/');
+    }
+
+    public function store(Request $request) {
+
+        if($request->app_id == 3){
+            $formFields = $request->validate([
+                'title' => ['required', 'regex:/^[a-zA-Z\s]+$/'],
+                'url' => ['required', 'url'],
+                'app_id' => 'required'
+            ],[
+                'title.required' => 'Prašome įvesti pavadinimą',
+                'title.regex' => 'Pavadinime gali būti tik raidės',
+                'url.required' => 'Prašome įvesti nuorodą',
+                'url.url' => 'Prašome įvesti tinkamą nuorodą',
+                'app_id.required' => 'Prašome pasirinkti technologiją'
+            ]);
+            $formFields['image_version'] = 1;
+        }else{
+            $formFields = $request->validate([
+                'title' => ['required', 'regex:/^[a-zA-Z\s]+$/'],
+                'app_id' => 'required'
+            ],[
+                'title.required' => 'Prašome įvesti pavadinimą',
+                'title.regex' => 'Pavadinime gali būti tik raidės',
+                'app_id.required' => 'Prašome pasirinkti technologiją'
+            ]);
+        }
 
         $formFields['user_id'] = auth()->id();
 
@@ -110,8 +196,11 @@ class ProjectController extends Controller
                 ]
             ];
 
-            ServiceController::store($project->id, $mysqlContName, $mysqlBody);
-            ServiceController::store($project->id, $wordpressContName, $wordpressBody);
+            $createMysqlCont = new CreateContainers($project->id, $mysqlContName, $mysqlBody);
+            dispatch($createMysqlCont)->delay(now()->addSeconds(1));
+
+            $createWordpressCont = new CreateContainers($project->id, $wordpressContName, $wordpressBody);
+            dispatch($createWordpressCont)->delay(now()->addSeconds(1));
         
         }else if($project->app_id == 2) { //Odoo
             
@@ -190,9 +279,87 @@ class ProjectController extends Controller
                 ]
             ];
 
-            ServiceController::store($project->id, $postgresContName, $postgresBody);
-            ServiceController::store($project->id, $odooContName, $odooBody);
+            $createPostgresCont = new CreateContainers($project->id, $postgresContName, $postgresBody);
+            dispatch($createPostgresCont)->delay(now()->addSeconds(1));
 
+            $createOdooCont = new CreateContainers($project->id, $odooContName, $odooBody);
+            dispatch($createOdooCont)->delay(now()->addSeconds(1));
+
+        }else if($project->app_id == 3) { //Laravel
+        
+            $mariadbVolName = $projectNaming.'_mariadb_vol';
+            $laravelVolName = $projectNaming.'_laravel_vol';
+
+            VolumeController::store($project->id, $mariadbVolName);
+            VolumeController::store($project->id, $laravelVolName);
+
+            $imageName = strtolower($projectNaming.'_laravel_image');
+
+            $createImage = new CreateImages($project->id, $imageName, $project->image_version.'.0', 'Laravel', $project->url);
+            dispatch($createImage)->delay(now()->addSeconds(1));
+
+            $mariadbContName = $projectNaming.'_mariadb_cont';
+            $laravelContName = $projectNaming.'_laravel_cont';
+
+            $mariadbBody = [
+                'Name' => $mariadbContName,
+                'TaskTemplate' => [
+                    'ContainerSpec' => [
+                        'Image' => 'mariadb:10.6.13',
+                        'Env' => [
+                            'MYSQL_DATABASE=project_db',
+                            'MYSQL_USER=db_user',
+                            'MYSQL_PASSWORD=2s4O3%zW1Jx2',
+                            'MYSQL_RANDOM_ROOT_PASSWORD=yes'
+                        ],
+                        'Mounts' => [
+                            [
+                                'Target' => '/var/lib/mysql',
+                                'Source' => $mariadbVolName,
+                                'Type' => 'volume',
+                                'ReadOnly' => false
+                            ]
+                        ]
+                    ]
+                ],
+                'Networks' => [
+                    [
+                        'Aliases' => ['database'],
+                        'Target' => $networkName
+                    ]
+                ]
+            ];
+
+            $laravelBody = [
+                'Name' => $laravelContName,
+                'TaskTemplate' => [
+                    'ContainerSpec' => [
+                        'Image' => $imageName.':'.$project->image_version.'.0',
+                        'Mounts' => [
+                            [
+                                'Target' => '/app',
+                                'Source' => $laravelVolName,
+                                'Type' => 'volume',
+                                'ReadOnly' => false
+                            ]
+                        ]
+                    ]
+                ],
+                'Networks' => [
+                    ['Target' => $networkName]
+                ],
+                "EndpointSpec" => [
+                    'Ports' => [
+                        ['TargetPort' => 8000]
+                    ]
+                ]
+            ];
+
+            $createMadiadbCont = new CreateContainers($project->id, $mariadbContName, $mariadbBody);
+            dispatch($createMadiadbCont)->delay(now()->addSeconds(80));
+
+            $createLaravelCont = new CreateContainers($project->id, $laravelContName, $laravelBody);
+            dispatch($createLaravelCont)->delay(now()->addSeconds(80));
         }
 
         return redirect('/');
@@ -200,8 +367,13 @@ class ProjectController extends Controller
 
     public static function getPort($project) {
         foreach($project->services()->get() as $service) {
-            if(str_contains($service->name, 'wordpress') || str_contains($service->name, 'odoo')) {
-                return ServiceController::inspect($service->name)->json()['Endpoint']['Ports'][0]['PublishedPort'];
+            if(str_contains($service->name, 'wordpress_cont') || str_contains($service->name, 'odoo_cont') || str_contains($service->name, 'laravel_cont')) {
+                $response = ServiceController::inspect($service->name)->json();
+                
+                if(array_key_exists('Ports', $response['Endpoint']))
+                    return $response['Endpoint']['Ports'][0]['PublishedPort'];
+                else
+                    return "null";
             }
         }
     }
@@ -219,6 +391,14 @@ class ProjectController extends Controller
         foreach($project->volumes()->get() as $volume){
             $deleteVolume = new DeleteVolumes($volume);
             dispatch($deleteVolume)->delay(now()->addSeconds(60));
+        }
+
+        $images = $project->images()->get();
+        $imageCount = count($images);
+        foreach($images as $image){
+            $deleteImage = new DeleteImages($image, $imageCount.'.0');
+            dispatch($deleteImage)->delay(now()->addSeconds(65));
+            $imageCount--;
         }
         
         $deleteProject = new DeleteProject($project);

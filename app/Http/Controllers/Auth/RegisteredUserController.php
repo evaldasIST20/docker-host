@@ -34,6 +34,13 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ], [
+            'name.required' => 'Prašome įvesti vardą',
+            'email.required' => 'Prašome įvesti el. paštą',
+            'email.email' => 'Prašome įvesti tinkamą el. paštą',
+            'email.unique' => 'Šiuo el. paštu jau yra sukurta paskyra',
+            'password.required' => 'Prašome įvesti slaptažodį',
+            'password.confirmed' => 'Slaptažodžiai nesutampa'
         ]);
 
         $user = User::create([

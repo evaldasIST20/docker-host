@@ -19,13 +19,13 @@ class NetworkController extends Controller
             'Driver' => 'overlay'
         ];
 
-        Http::post('http://192.168.0.192:2375/v1.42/networks/create', $body);
+        Http::post('http://10.175.25.30:2375/v1.42/networks/create', $body);
 
         Network::create($formFields);
     }
 
     public static function delete(Network $network) {
-        Http::delete('http://192.168.0.192:2375/v1.42/networks/'.$network->name);
+        Http::delete('http://10.175.25.30:2375/v1.42/networks/'.$network->name);
 
         $network->delete();
     }

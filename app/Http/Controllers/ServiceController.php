@@ -14,17 +14,21 @@ class ServiceController extends Controller
             'name' => $name
         ];
 
-        Http::post('http://192.168.0.192:2375/v1.42/services/create', $body);
+        Http::post('http://10.175.25.30:2375/v1.42/services/create', $body);
 
         Service::create($formFields);
     }
 
+    public static function update($name, $service_version, $body) {
+        Http::post('http://10.175.25.30:2375/v1.42/services/'.$name.'/update?version='.$service_version, $body);
+    }
+
     public static function inspect($name) {
-        return Http::get('http://192.168.0.192:2375/v1.42/services/'.$name);
+        return Http::get('http://10.175.25.30:2375/v1.42/services/'.$name);
     }
 
     public static function delete(Service $service) {
-        Http::delete('http://192.168.0.192:2375/v1.42/services/'.$service->name);
+        Http::delete('http://10.175.25.30:2375/v1.42/services/'.$service->name);
 
         $service->delete();
     }

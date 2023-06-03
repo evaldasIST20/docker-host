@@ -2,7 +2,7 @@
     <x-slot name="header">
         <a href="{{route('project-create')}}">
             <x-primary-button>
-                Create project
+                Naujas projektas
             </x-primary-button>
         </a>
     </x-slot>
@@ -13,20 +13,30 @@
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900 flex items-center justify-between">
-                        <div>Title: {{$project->title}}</div>
+                        <div>Pavadinimas: {{$project->title}}</div>
 
                         @php
                             $port = App\Http\Controllers\ProjectController::getPort($project);
                         @endphp
-                        <div>Port: {{$port}}</div>
+                        <div>Nuoroda: <a href="http://192.168.0.192:{{$port}}" target="_blank">192.168.0.192:{{$port}}</a></div>
 
-                        <form method="POST" action="/Laravel/docker-host/public/project/{{$project->id}}">
-                            @csrf
-                            @method('DELETE')
-                            <x-danger-button>
-                                Delete
-                            </x-danger-button>
-                        </form>
+                        <div class="flex items-center">
+                            @if ($project->app_id == 3)
+                                <a href="{{route('project-show', $project->id)}}">
+                                    <x-secondary-button>
+                                        Keisti
+                                    </x-secondary-button>
+                                </a>
+                            @endif
+
+                            <form method="POST" action="{{route('project-delete', $project->id)}}">
+                                @csrf
+                                @method('DELETE')
+                                <x-danger-button>
+                                    Ištrinti
+                                </x-danger-button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -37,7 +47,7 @@
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900">
-                        No projects found
+                        Projektų nėra
                     </div>
                 </div>
             </div>
