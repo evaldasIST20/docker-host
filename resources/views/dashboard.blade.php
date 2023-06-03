@@ -18,7 +18,7 @@
                         @php
                             $port = App\Http\Controllers\ProjectController::getPort($project);
                         @endphp
-                        <div>Nuoroda: <a href="http://192.168.0.192:{{$port}}" target="_blank">192.168.0.192:{{$port}}</a></div>
+                        <div>Nuoroda: <a href="http://5.199.161.72:{{$port}}" target="_blank">5.199.161.72:{{$port}}</a></div>
 
                         <div class="flex items-center">
                             @if ($project->app_id == 3)
